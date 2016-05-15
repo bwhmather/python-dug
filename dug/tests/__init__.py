@@ -5,15 +5,15 @@ import dug
 
 class DugTestCase(unittest.TestCase):
     def test_basic(self):
-        @dug.memoize
+        @dug.memoize()
         def dec():
             return 1
 
-        @dug.memoize
+        @dug.memoize()
         def bar(x):
             return x - dec()
 
-        @dug.memoize
+        @dug.memoize()
         def foo(x):
             return 2 * bar(x)
 
