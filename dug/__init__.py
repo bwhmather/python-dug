@@ -123,7 +123,7 @@ class Context(object):
     def get_target(self):
         if not len(self._target_stack):
             raise NoTargetError()
-        return self._target_stack
+        return self._target_stack[-1]
 
     def push_target(self, target):
         self._target_stack.append(target)
