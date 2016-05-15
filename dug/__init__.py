@@ -3,7 +3,7 @@ import functools
 import threading
 
 
-_THREAD_STATE = threading.local()
+_CURRENT_CONTEXT = threading.local()
 
 
 class NotFoundError(Exception):
@@ -19,9 +19,9 @@ class NoTargetError(Exception):
 
 
 def _get_context_stack():
-    if not hasattr(_THREAD_STATE, 'context_stack'):
-        _THREAD_STATE.context_stack = []
-    return _THREAD_STATE.context_stack
+    if not hasattr(_CURRENT_CONTEXT, 'value'):
+        _CURRENT_CONTEXT.value = []
+    return _CURRENT_CONTEXT.value
 
 
 def push_context(context):
@@ -49,25 +49,6 @@ def _get_target_stack():
     return _THREAD_STATE.target_stack
 
 
-def push_target(target):
-    stack = _get_target_stack()
-    stack.append(target)
-
-
-def get_target():
-    stack = _get_target_stack()
-    if not stack:
-        raise NoTargetError()
-    return stack[-1]
-
-
-def pop_target():
-    stack = _get_target_stack()
-    if not stack:
-        raise OutsideContextError()
-    return stack.pop()
-
-
 class Target(object):
     def __init__(self, fn, *args):
         self.function = '%s.%s' % (fn.__module__, fn.__qualname__)
@@ -80,10 +61,10 @@ class Target(object):
         return (self.function, self.args) == (other.function, other.args)
 
     def __enter__(self):
-        push_target(self)
+        get_context().push_target(self)
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
-        target = pop_target()
+        target = get_context().pop_target()
         assert target == self
 
     def __repr__(self):
@@ -102,7 +83,7 @@ def memoize(fn):
 
         try:
             # register current node as a dependency of the calling node
-            context.add_dependencies(get_target(), target)
+            context.add_dependencies(target)
         except NoTargetError:
             pass
 
@@ -117,6 +98,48 @@ def memoize(fn):
 
 
 class Context(object):
+    def __init__(self, store):
+        self.store = store
+
+        self._target_stack = []
+
+    def set(self, target, value):
+        self.store.set(target, value)
+
+    def tweak(self, target, value):
+        return self.store.tweak(target, value)
+
+    def get(self, target, *args):
+        return self.store.get(target, *args)
+
+    def invalidate(self, target):
+        return self.store.invalidate(target)
+
+    def add_dependencies(self, *dependencies):
+        self.store.add_dependencies(self.get_target(), *dependencies)
+
+    def get_target(self):
+        if not len(self._target_stack):
+            raise NoTargetError()
+        return self._target_stack
+
+    def push_target(self, target):
+        self._target_stack.append(target)
+
+    def pop_target(self):
+        if not len(self._target_stack):
+            raise NoTargetError()
+        return self._target_stack.pop()
+
+    def __enter__(self):
+        push_context(self)
+
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        context = pop_context()
+        assert context == self
+
+
+class Store():
     def __init__(self, parent=None):
         self._parent = parent
 
@@ -128,6 +151,7 @@ class Context(object):
 
         # map from targets to sets of targets that depend on them
         self._dependants = {}
+
 
     def set(self, target, value):
         self.invalidate(target)
@@ -179,10 +203,3 @@ class Context(object):
 
         for dependency in dependencies:
             self._dependants.setdefault(dependency, set()).add(target)
-
-    def __enter__(self):
-        push_context(self)
-
-    def __exit__(self, exc_type, exc_value, exc_traceback):
-        context = pop_context()
-        assert context == self

@@ -15,7 +15,7 @@ Calculating a node
       - return
 
 
-Setting a node:a
+Setting a node
 
 
 
@@ -31,7 +31,7 @@ setting a node
   - start a transaction
   - change the node
   - invalidate all dependencies/notify all listeners
-  - clobber34
+  - clobber
 
 
 
