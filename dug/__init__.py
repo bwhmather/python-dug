@@ -69,27 +69,32 @@ class Target(object):
         )
 
 
+class Function(object):
+    def __init__(self, callable):
+        self.callable = callable
+
+    def __call__(self, *args):
+        context = get_context()
+        target = Target(self, *args)
+
+        try:
+            # register current node as a dependency of the calling node
+            context.add_dependencies(target)
+        except NoTargetError:
+            pass
+
+        try:
+            return context.get(target)
+        except NotFoundError:
+            with target:
+                result = self.callable(*args)
+            context.set(target, result)
+            return result
+
+
 def memoize():
     def _decorator(fn):
-        @functools.wraps(fn)
-        def _wrapper(*args):
-            context = get_context()
-            target = Target(fn, *args)
-
-            try:
-                # register current node as a dependency of the calling node
-                context.add_dependencies(target)
-            except NoTargetError:
-                pass
-
-            try:
-                return context.get(target)
-            except NotFoundError:
-                with target:
-                    result = fn(*args)
-                context.set(target, result)
-                return result
-        return _wrapper
+        return functools.wraps(fn)(Function(fn))
     return _decorator
 
 
