@@ -43,12 +43,6 @@ def pop_context():
     return stack.pop()
 
 
-def _get_target_stack():
-    if not hasattr(_THREAD_STATE, 'target_stack'):
-        _THREAD_STATE.target_stack = []
-    return _THREAD_STATE.target_stack
-
-
 class Target(object):
     def __init__(self, fn, *args):
         self.function = '%s.%s' % (fn.__module__, fn.__qualname__)
@@ -153,7 +147,6 @@ class Store():
 
         # map from targets to sets of targets that depend on them
         self._dependants = {}
-
 
     def set(self, target, value):
         self.invalidate(target)
