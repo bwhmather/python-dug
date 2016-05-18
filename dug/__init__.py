@@ -224,6 +224,15 @@ class _ExecutionContext(object):
 
 
 class Context(object):
+    @property
+    def store(self):
+        if self._store is None:
+            raise OutsideContextError()
+        return self._store
+
+    def __init__(self):
+        self._store = None
+
     def tweak(self, target, value):
         return self.store.tweak(target, value)
 
@@ -245,15 +254,15 @@ class Context(object):
     def __enter__(self):
         parent = get_storage_context()
         if parent:
-            self.store = Store(parent.store)
+            self._store = Store(parent.store)
         else:
-            self.store = Store()
+            self._store = Store()
 
         push_storage_context(self)
         return self
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
-        self.store = None
+        self._store = None
         pop_storage_context()
 
 
