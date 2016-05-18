@@ -6,7 +6,7 @@ import threading
 _THREAD_LOCALS = threading.local()
 
 
-class NotFoundError(Exception):
+class NotFoundError(KeyError):
     pass
 
 
@@ -141,7 +141,13 @@ class Store(object):
 
         return False
 
-    def get(self, target):
+    def get(self, target, default=None):
+        try:
+            return self[target]
+        except NotFoundError:
+            return default
+
+    def __getitem__(self, target):
         if target in self._entries:
             return self._entries[target].value
 
@@ -224,8 +230,11 @@ class Context(object):
     def cache(self, target, value, dependencies=None):
         self.store.cache(target, value, dependencies=dependencies)
 
-    def get(self, target):
-        return self.store.get(target)
+    def get(self, target, default=None):
+        return self.store.get(target, default)
+
+    def __getitem__(self, target):
+        return self.store[target]
 
     def __contains__(self, target):
         return target in self.store
@@ -271,7 +280,7 @@ class Function(object):
 
         # Try to load result from cache.
         if target in storage_context:
-            return storage_context.get(target)
+            return storage_context[target]
 
         with _ExecutionContext() as execution_context:
             result = self.callable(*args)

@@ -21,14 +21,14 @@ class DugTestCase(unittest.TestCase):
 
         with dug.Context() as ctx:
             self.assertEqual(foo(4), 6)
-            self.assertEqual(ctx.get(dug.Target(foo, 4)), 6)
+            self.assertEqual(ctx[dug.Target(foo, 4)], 6)
 
             # change one of the underlying cells
             ctx.tweak(dug.Target(dec), 4)
-            self.assertEqual(ctx.get(dug.Target(dec)), 4)
+            self.assertEqual(ctx[dug.Target(dec)], 4)
 
             # check that everything is invalidated
-            self.assertRaises(dug.NotFoundError, ctx.get, dug.Target(foo, 4))
+            self.assertNotIn(dug.Target(foo, 4), ctx)
 
             self.assertEqual(foo(4), 0)
 
