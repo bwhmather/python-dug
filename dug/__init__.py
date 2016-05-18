@@ -151,6 +151,9 @@ class Store(object):
         if target in self._entries:
             return self._entries[target].value
 
+        if self._parent is not None and target not in self._masked:
+            return self._parent[target]
+
         raise NotFoundError(target)
 
     def _invalidate_many(self, targets):
