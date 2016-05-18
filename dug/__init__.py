@@ -103,17 +103,9 @@ class Store(object):
 
         self._entries = {}
 
-        # set of targets that have been explicitly set in this store and should
-        # not be cleared
-        self._pinned = set()
-
         # set of targets that have either been replaced, or depend on other
         # targets that have been replaced in the store.
         self._masked = set()
-
-    def tweak(self, target, value):
-        self.cache(target, value)
-        self._pinned.add(target)
 
     def cache(self, target, value, dependencies=None):
         if dependencies is None:
@@ -235,9 +227,11 @@ class Context(object):
 
     def __init__(self):
         self._store = None
+        self._tweaks = {}
 
     def tweak(self, target, value):
-        return self.store.tweak(target, value)
+        self._tweaks[target] = value
+        return self.store.cache(target, value)
 
     def cache(self, target, value, dependencies=None):
         self.store.cache(target, value, dependencies=dependencies)
@@ -260,6 +254,9 @@ class Context(object):
             self._store = Store(parent.store)
         else:
             self._store = Store()
+
+        for target, value in self._tweaks.items():
+            self.store.cache(target, value)
 
         push_storage_context(self)
         return self
