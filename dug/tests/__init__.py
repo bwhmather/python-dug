@@ -3,6 +3,40 @@ import unittest
 import dug
 
 
+@dug.memoize()
+def _dummy_function(*args):
+    pass
+
+_dummy_target = dug.Target(_dummy_function)
+
+
+class StoreTestCase(unittest.TestCase):
+    def test_cache_basic(self):
+        store = dug.Store()
+
+        store.cache(_dummy_target, 1)
+
+        self.assertIn(_dummy_target, store)
+        self.assertEqual(store[_dummy_target], 1)
+
+    def test_fetch_from_parent(self):
+        parent = dug.Store()
+        parent.cache(_dummy_target, 'a')
+
+        store = dug.Store(parent=parent)
+        self.assertIn(_dummy_target, store)
+        self.assertEqual(store[_dummy_target], 'a')
+
+    def test_shadow_value_in_parent(self):
+        parent = dug.Store()
+        parent.cache(_dummy_target, "parent")
+
+        store = dug.Store(parent=parent)
+        store.cache(_dummy_target, "child")
+        self.assertIn(_dummy_target, store)
+        self.assertEqual(store[_dummy_target], "child"),
+
+
 class DugTestCase(unittest.TestCase):
     def test_basic(self):
         @dug.memoize()
@@ -35,5 +69,6 @@ class DugTestCase(unittest.TestCase):
 
 loader = unittest.TestLoader()
 suite = unittest.TestSuite((
+    loader.loadTestsFromTestCase(StoreTestCase),
     loader.loadTestsFromTestCase(DugTestCase),
 ))
