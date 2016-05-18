@@ -85,6 +85,14 @@ class Target(object):
         )
 
 
+class _Entry(object):
+    __slots__ = [
+        'value',
+        'dependencies',
+        'dependants',
+    ]
+
+
 class Store(object):
     """The core of the DAG, the store is responsible for tracking dependencies
     and caching valuesComponents
@@ -93,8 +101,7 @@ class Store(object):
     def __init__(self, parent=None):
         self._parent = parent
 
-        # map from targets to cached values
-        self._values = {}
+        self._entries = {}
 
         # set of targets that have been explicitly set in this store and should
         # not be cleared
@@ -104,39 +111,41 @@ class Store(object):
         # targets that have been replaced in the store.
         self._masked = set()
 
-        # map from targets to the set of targets that they depend on
-        self._dependencies = {}
-
-        # map from targets to sets of targets that depend on them
-        self._dependants = {}
-
     def tweak(self, target, value):
         self.cache(target, value)
         self._pinned.add(target)
 
     def cache(self, target, value, dependencies=None):
-        # if any dependencies in self._cache or self._tweaks
-        self.invalidate(target)
-
-        self._values[target] = value
-
         if dependencies is None:
             dependencies = set()
 
-        self._dependencies[target] = dependencies
-        for dependency in dependencies:
-            self._dependants[dependency].add(target)
+        # if any dependencies in self._cache or self._tweaks
+        self.invalidate(target)
 
-        self._dependants[target] = set()
+        entry = _Entry()
+        entry.value = value
+        entry.dependencies = dependencies
+        entry.dependants = set()
+
+        self._entries[target] = entry
+
+        for dependency in dependencies:
+            self._entries[dependency].dependants.add(target)
 
     def __contains__(self, target):
-        return target in self._values
+        if target in self._entries:
+            return True
+
+        if self._parent is not None and target not in self._masked:
+            return target in self._parent
+
+        return False
 
     def get(self, target):
-        if target in self._values:
-            return self._values[target]
+        if target in self._entries:
+            return self._entries[target].value
 
-        raise NotFoundError(target, self._values)
+        raise NotFoundError(target)
 
     def _invalidate_many(self, targets):
         # TODO update mask
@@ -144,47 +153,37 @@ class Store(object):
         to_invalidate = set(targets)
 
         while to_invalidate:
-            to_invalidate = set.intersection(set(self._values), to_invalidate)
+            to_invalidate = set.intersection(set(self._entries), to_invalidate)
             next_to_invalidate = {
                 dependant
                 for target in to_invalidate
-                for dependant in self._dependants[target]
+                for dependant in self._entries[target].dependants
             }
 
             for target in list(to_invalidate):
-                del self._values[target]
-                del self._dependencies[target]
-                del self._dependants[target]
+                del self._entries[target]
             to_invalidate = next_to_invalidate
 
     def invalidate(self, target):
         self._invalidate_many({target})
 
-    def add_dependencies(self, target, *dependencies):
-        dependencies = set(dependencies)
-
-        self._dependencies.setdefault(target, set()).update(dependencies)
-
-        for dependency in dependencies:
-            self._dependants.setdefault(dependency, set()).add(target)
-
     def contents(self, target):
         if self._parent is not None:
             frozenset.union(
-                frozenset(self._values),
+                frozenset(self._entries),
                 frozenset.difference(
                     self._parent.contents(),
                     self._masked,
                 )
             )
         else:
-            return frozenset(self._values)
+            return frozenset(self._entries)
 
     def dependencies(self, target):
         '''The set of all other targets that a target is known to depend on.
         '''
-        if target in self._dependencies:
-            return frozenset(self._dependencies[target])
+        if target in self._entries:
+            return frozenset(self._entries[target].dependencies)
 
         if self._parent is not None:
             return self._parent.dependiencies(target)
@@ -194,8 +193,8 @@ class Store(object):
     def dependants(self, target):
         '''The set of all other targets that depend on a target.
         '''
-        if target in self._dependants:
-            return frozenset(self._dependants[target])
+        if target in self._entries:
+            return frozenset(self._entries[target].dependants)
 
         if self._parent is not None:
             return self._parent.dependants(target)
