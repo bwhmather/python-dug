@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 setup(
     name='dug',
     url='https://github.com/bwhmather/python-dug',
-    version='0.0.1',
+    version='0.1.0',
     author='Ben Mather',
     author_email='bwhmather@bwhmather.com',
     maintainer='',
