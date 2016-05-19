@@ -2,6 +2,7 @@ language: python
 sudo: false
 python:
   - "3.4"
+  - "3.5"
 
 install:
   - "pip install -e ."
@@ -18,3 +19,11 @@ script:
 
 after_success:
   - "coveralls"
+
+deploy:
+  provider: pypi
+  user: "bwhmather-travis"
+  password:
+    secure: A/a/eDOv3lEGZer12r7u1BATUYOSqYkuPIqdzXGuSmtM3OmIV5bozieYi48R3F2+j8aNxPGzJM46awFMtbNY8Boem0rw5AxnrZCSnOYwWlwzztUx3qqgHA05YF/+JA06s7Y57dFiSsG3F/UrUSAkzYggsLou2zswklq25m5Mh1akIJ+RnrIbFm+H6kESBTvyUDHFyTZM5f/qcF6JLLF1u+hP4fQbb9+3TGZW2gs6zC1AHlOvwcHmMecQPYErw9BzeqHvHEIgxqDuWX3D6FDq97foIq2PD0caRVwcIML0j0IBruCsnL8v0cgN/VZ0d9+EfvYW4laUAoDjEKhS0yLc8947nNp7C2oD8fmijJrEP1gCjccFNe6Ou6Lxe/hTuJwsNMqwMj/o5/7/Zm6azwL45kb+eGDt5cQQoUWotFxkFlq2VraNsMg9Kkij5p4Ajd3yJyL5nwa3EvS5QVHenepvXmX/Zs/lTfwWgu8AXfFAgTregZS7/dWbKhH1X3YtCuxF/EmhA8fTJLdfkLr2g8rBzUqAgW5JcXl9+dOW0F7WYBrF6pdZnarC8GDDUPlZtErlW2aVLpDQuNWdZLVCFc1RnEluhDpGQn6VorlIhuhhEoelgKG1iEPsPbB4Aq64KXsi/DJlD8473/awXEVCvFWq4G2NSxwoVprwGtdEKEPLzhU=
+  on:
+    branch: "master"
