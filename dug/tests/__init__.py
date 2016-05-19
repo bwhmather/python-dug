@@ -47,7 +47,7 @@ class StoreTestCase(unittest.TestCase):
         self.assertIsNone(store.get(_dummy_target))
 
 
-class DugTestCase(unittest.TestCase):
+class ContextTestCase(unittest.TestCase):
     def test_basic(self):
         @dug.memoize()
         def dec():
@@ -76,9 +76,37 @@ class DugTestCase(unittest.TestCase):
 
             self.assertEqual(foo(4), 0)
 
+    def test_tweak_in_nested(self):
+        @dug.memoize()
+        def node():
+            return 'a'
+
+        @dug.memoize()
+        def dependant():
+            return node() + 'b'
+
+        with dug.Context():
+            with dug.Context():
+                node.tweak('c')
+                self.assertEqual(dependant(), 'cb')
+
+            self.assertEqual(dependant(), 'ab')
+
+    def test_reapply_tweak(self):
+        @dug.memoize()
+        def node():
+            return 'untweaked'
+
+        ctx = dug.Context()
+        with ctx:
+            node.tweak('tweaked')
+
+        with ctx:
+            self.assertEqual(node(), 'tweaked')
+
 
 loader = unittest.TestLoader()
 suite = unittest.TestSuite((
     loader.loadTestsFromTestCase(StoreTestCase),
-    loader.loadTestsFromTestCase(DugTestCase),
+    loader.loadTestsFromTestCase(ContextTestCase),
 ))
