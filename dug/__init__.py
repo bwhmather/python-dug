@@ -1,3 +1,5 @@
+"""A python memoisation framework.
+"""
 import functools
 
 import threading
@@ -94,13 +96,18 @@ class _Entry(object):
 
 
 class Store(object):
-    """The core of the DAG, the store is responsible for tracking dependencies
-    and caching valuesComponents
+    """The core of the DAG, the store is responsible for recording dependencies
+    and caching values.  It plays no part in finding out what the values should
+    be, and what they depend on.
 
+    :class:`Store` is not part of the public api.
     """
     def __init__(self, parent=None):
         self._parent = parent
 
+        # A dictionary mapping from targets to :class:`_Entry` objects.  The
+        # entry objects contain the target's saved value, and references to
+        # all of the targets that it depends on, and that depend on it.
         self._entries = {}
 
         # set of targets that have either been replaced, or depend on other
@@ -108,6 +115,11 @@ class Store(object):
         self._masked = set()
 
     def cache(self, target, value, dependencies=None):
+        """Associate `value` with target.
+
+        If passed a set of dependencies these will be saved and used to
+        invalidate the target if anything it depends on changes
+        """
         if dependencies is None:
             dependencies = set()
 
@@ -116,7 +128,7 @@ class Store(object):
 
         entry = _Entry()
         entry.value = value
-        entry.dependencies = dependencies
+        entry.dependencies = set(dependencies)
         entry.dependants = set()
 
         self._entries[target] = entry
@@ -125,6 +137,9 @@ class Store(object):
             self._entries[dependency].dependants.add(target)
 
     def __contains__(self, target):
+        """Returns True if the Store contains `target` or, if the target is not
+        masked, it is contained in any of the parent stores.
+        """
         if target in self._entries:
             return True
 
@@ -134,6 +149,12 @@ class Store(object):
         return False
 
     def get(self, target, default=None):
+        """Lookup the saved value of target.
+
+        If the value cannot be found in this store, the parent store will be
+        checked (assuming that the target has not been masked out) before
+        falling back to `default`.
+        """
         try:
             return self[target]
         except NotFoundError:
@@ -199,8 +220,11 @@ class Store(object):
             return set(self._entries)
 
     def dependencies(self, target):
-        '''The set of all other targets that a target is known to depend on.
-        '''
+        """The set of all other targets that a target is known to depend on.
+
+        If the target is not being tracked, returns `None` instead of the empty
+        set.
+        """
         if target in self._entries:
             return set(self._entries[target].dependencies)
 
@@ -210,8 +234,11 @@ class Store(object):
         return None
 
     def dependants(self, target):
-        '''The set of all other targets that depend on a target.
-        '''
+        """The set of all other targets that depend on a target.
+
+        If the target is not being tracked, returns `None` instead of the empty
+        set.
+        """
         if target in self._entries:
             return set(self._entries[target].dependants)
 
