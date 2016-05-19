@@ -149,7 +149,25 @@ class Store(object):
         raise NotFoundError(target)
 
     def _invalidate_many(self, targets):
-        # TODO update mask
+        # TODO this can definitely be done better
+        if self._parent is not None:
+            to_mask = set(targets)
+
+            while to_mask:
+                to_mask = set.difference(
+                    set.intersection(
+                        self._parent.contents(),
+                        to_mask
+                    ),
+                    self._masked
+                )
+                self._masked = set.union(self._masked, to_mask)
+
+                to_mask = {
+                    dependant
+                    for target in to_mask
+                    for dependant in self._parent.dependants(target)
+                }
 
         to_invalidate = set(targets)
 
@@ -168,23 +186,23 @@ class Store(object):
     def invalidate(self, target):
         self._invalidate_many({target})
 
-    def contents(self, target):
+    def contents(self):
         if self._parent is not None:
-            frozenset.union(
-                frozenset(self._entries),
-                frozenset.difference(
+            set.union(
+                set(self._entries),
+                set.difference(
                     self._parent.contents(),
                     self._masked,
                 )
             )
         else:
-            return frozenset(self._entries)
+            return set(self._entries)
 
     def dependencies(self, target):
         '''The set of all other targets that a target is known to depend on.
         '''
         if target in self._entries:
-            return frozenset(self._entries[target].dependencies)
+            return set(self._entries[target].dependencies)
 
         if self._parent is not None:
             return self._parent.dependiencies(target)
@@ -195,7 +213,7 @@ class Store(object):
         '''The set of all other targets that depend on a target.
         '''
         if target in self._entries:
-            return frozenset(self._entries[target].dependants)
+            return set(self._entries[target].dependants)
 
         if self._parent is not None:
             return self._parent.dependants(target)

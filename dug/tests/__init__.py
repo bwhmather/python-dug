@@ -36,6 +36,16 @@ class StoreTestCase(unittest.TestCase):
         self.assertIn(_dummy_target, store)
         self.assertEqual(store[_dummy_target], "child"),
 
+    def test_mask_value_in_parent(self):
+        parent = dug.Store()
+        parent.cache(_dummy_target, "parent")
+
+        store = dug.Store(parent=parent)
+        store.invalidate(_dummy_target)
+
+        self.assertNotIn(_dummy_target, store)
+        self.assertIsNone(store.get(_dummy_target))
+
 
 class DugTestCase(unittest.TestCase):
     def test_basic(self):
