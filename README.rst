@@ -1,62 +1,43 @@
+==========
 Python DUG
 ==========
 
 |build-status| |coverage|
 
+A python memoisation framework.
+
+Unlike other well known examples, uses run time tracing instead of parsing or meta-evaluation to build up a directed acyclic graph of function dependencies.
+
+Unloading values from the cache must be done explicitly but is made easier by support for nested cache contexts.
+
+Dug supports manually changing the return value of tracked functions for certain parameters.
+
+Dug stands for directed un-cyclic graph.  I know un-cyclic isn't a real word.
+
+Installation
+============
+
+Dug can be installed from pypi
 
 
-Calculating a node
-  - if a trace context exists add head to list of deps
-  - if a value exists for this set of args, return it
-  - otherwise
-      - push self onto trace context stack
-      - execute as normal
-      - save value and args
-      - return
-
-
-Setting a node
-
-
-
-
-evaluation:
-  - if a trace context is set, bind the caller as a dependency
-  - if result already in db just return that
-  - setup trace env
-  - evaluate function
-
-
-setting a node
-  - start a transaction
-  - change the node
-  - invalidate all dependencies/notify all listeners
-  - clobber
+Getting started
+===============
 
 
 
-
-
-persistance:
-  - dag object path
-  - dag method name
-  - list of argument values
 
 
 Components
-----------
+==========
 Cache:
   - Created on entering a context
   - Populated with tweaks from the owning context
   - No support for rebuilding on top of a parent cache, must be recreated from tweaks stored in the context.
   - Should not forward changes on to parent cache.  Nodes in parent cache that have different values from what they would in the child cache should be marked as masked.
 
-
-
-
-
+ 
 Identifying nodes
------------------
+=================
 
 Node identifiers must be serializable.
 It probably makes sense for node identifiers to just hold a reference to the function and rely on pickle or whatever to deal with the wire format.
@@ -91,18 +72,16 @@ It might make sense to always clear the cache on exiting the context no matter w
 
 
 Garbage collection
-------------------
+==================
 
 It has been suggested that garbage collection is probably not actually necessary.  Instead rely on discarding contexts to get granular control over what stuff to keep.
 
 
 
 Questions
----------
+=========
 
   - Is there a way to split tweaking from caching?
-
-
 
 
 .. |build-status| image:: https://travis-ci.org/bwhmather/python-dug.png?branch=develop
