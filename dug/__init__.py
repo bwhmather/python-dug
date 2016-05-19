@@ -318,6 +318,10 @@ class Function(object):
 
         return result
 
+    def tweak(self, value, *args):
+        storage_context = get_storage_context()
+        storage_context.tweak(Target(self, *args), value)
+
 
 def memoize():
     def _decorator(fn):
